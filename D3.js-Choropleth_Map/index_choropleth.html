@@ -1,0 +1,151 @@
+<html>
+<!-- Stefan Cherubin
+snc261
+Last updated 11/15/18 -->
+<head>
+   
+    <style>
+        body {
+            font-family: Helvetica, Arial, sans-serif
+        }
+
+        h1 {
+            background-color: #2a5599;
+            color: white;
+            padding: 5px;
+            
+        }
+        svg{
+            border: 1px solid black;
+            color: black;
+        }
+        
+        .mainView{
+            display: flex;
+        }
+
+        
+    </style>
+    <script src="d3.js"></script>
+
+</head>
+<body>
+  <h1>Airlines Routes</h1>
+  <div class="mainView">
+      <div>
+          <h2>Received</h2>
+          <svg id="AirlinesChart"></svg>
+      </div>
+      <div>
+          <h2>Donated</h2>
+          <svg id="Map"></svg>
+      </div>
+  </div>
+</body>
+<script>
+let body = d3.select("#map")
+let body2 = d3.select("#AirlinesChart")
+
+Promise.all([
+  d3.csv("Aid Data Countries - Aggregated.csv"),
+  d3.json("countries.geo.json")
+]).then(showData)
+
+function showData(datasources){
+  let mapInfo = datasources[1]
+  let data = datasources[0]
+  console.log(data)
+
+  let dataIndexDonations = {}
+  for (let i of data){
+    let country = i.country
+    dataIndexDonations[country] = +i.donated
+  }
+  console.log(dataIndexDonations)
+
+  let dataIndexReceived = {}
+  for (let s of data){
+    let country = s.country
+    dataIndexReceived[country] = +s.received
+  }
+  console.log(dataIndexReceived)
+
+  mapInfo.features = mapInfo.features.map(d => { 
+    let country = d.properties.name;
+    let donated = dataIndexDonations[country]
+    let received = dataIndexReceived[country]
+    d.properties.Donated = donated;
+    d.properties.Received = received; 
+    return d;
+
+  })
+  console.log(mapInfo)
+
+  let maxDonation = d3.max(mapInfo.features, d => d.properties.Donated)
+  let medianDonation = d3.median(mapInfo.features, d => d.properties.Donated)
+
+  let maxReceived = d3.max(mapInfo.features, d => d.properties.Received)
+  let medianReceived = d3.median(mapInfo.features, d => d.properties.Received)
+
+  let dScale = d3.scaleLinear()
+  .domain([0, maxDonation])
+  .range(["white", "orange", "red"])
+
+  let rScale = d3.scaleLinear()
+  .domain([0, maxReceived])
+  .range(["white", "blue", "purple"])
+
+  let width = 600
+  let height = 400
+  console.log(maxDonation)
+
+  let containera = d3.select("#AirlinesChart");//TODO: select the svg with id Map
+     //TODO: set the width and height of the conatiner to be equal the width and height variables.
+     containera
+        .attr("width", width)
+       //TODO: Set the height of the container
+    containera
+        .attr("height", height)
+
+  let container = d3.select("#map");//TODO: select the svg with id Map
+     //TODO: set the width and height of the conatiner to be equal the width and height variables.
+     container
+        .attr("width", width)
+       //TODO: Set the height of the container
+    container
+        .attr("height", height)
+   
+  var projection = d3.geoMercator()
+
+  projection.scale(97)
+            .translate([width / 2, height / 2 + 20])
+
+let path = d3.geoPath().projection(projection)
+let path2 = path
+
+body.selectAll("path").data(mapInfo.features)
+      .enter().append("path")
+      .attr("d", d => path(d))
+      .attr("stroke", "black")
+      .attr("fill",  
+        d => d.properties.Donated ? 
+        dScale(d.properties.Donated): "grey"
+      )
+
+ body2.selectAll("path").data(mapInfo.features)
+      .enter().append("path")
+      .attr("d", d => path(d))
+      .attr("stroke", "black")
+      .attr("fill",  
+        d => d.properties.Received ? 
+        rScale(d.properties.Received): "grey"
+      )
+     
+
+
+}
+
+
+
+
+</script>
